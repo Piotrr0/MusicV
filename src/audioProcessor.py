@@ -55,6 +55,7 @@ class AudioProcessor:
                 channels=channels,
                 duration=duration
             )
+            pygame.mixer.music.load(file_path)
             return self.current_audio
 
         except Exception as e:
@@ -114,3 +115,9 @@ class AudioProcessor:
         freqs = np.fft.rfftfreq(n=N, d=1.0 / sample_rate)
 
         return freqs, mags
+    
+    def get_audio_length_samples(self) -> int:
+        return len(self.current_audio.audio_data) if self.current_audio.audio_data is not None else 0
+
+    def get_sample_rate(self) -> int:
+        return self.current_audio.sample_rate
