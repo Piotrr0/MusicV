@@ -11,17 +11,25 @@ class VolumeOverlay():
         self.slider_width = 150
         self.slider_height = 10
         self.slider_knob_radius = 8
+        self.border_padding = 6
+        self.slider_rect = pygame.Rect(
+                                self.slider_x - self.border_padding,
+                                self.slider_y - self.border_padding,
+                                self.slider_width + self.border_padding * 2,
+                                self.slider_height + self.border_padding * 2)
 
         self.colors = {
-            'slider': (255, 255, 255),
-            'knob': (255, 255, 255),
-            'bg': (50,50,50)
+            'slider':   (255, 255, 255),
+            'knob':     (255, 255, 255),
+            'bg':       (50,50,50),
+            'border':   (60, 120, 255)
         }
 
     def draw_volume_bar(self, screen):
         if Settings.is_dragging_over:
             return None
 
+        pygame.draw.rect(screen, self.colors['border'], self.slider_rect, 10)
         pygame.draw.rect(screen, self.colors['bg'], (self.slider_x, self.slider_y, self.slider_width, self.slider_height))
 
         knob_x = self.slider_x + int((self.volume_percent / 100) * self.slider_width)
