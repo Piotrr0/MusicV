@@ -26,6 +26,9 @@ class Window():
         self.wave_renderer = WaveformRenderer(self.width, self.height)
         self.drag_overlay = DragOverlay(self.width, self.height)
 
+        self.freqs = None
+        self.mags = None
+
     def update(self):
         while self.running:
             self.handle_events()
@@ -53,12 +56,9 @@ class Window():
                     data = self.audio_processor.load_audio_file(event.file)
                     print(data)
 
-                freqs_mags = self.audio_processor.get_fft_data(
+                freqs_mags = self.audio_processor.calculate_fft(
                 start_sample=0,
-                fft_size=1024,
-                channel_index=0)
+                num_samples=4096)
 
                 if freqs_mags is not None:
-                    freqs, mags = freqs_mags
-                    print("Freqs array:", freqs)
-                    print("Mags array:", mags)
+                    self.freqs, self.mags = freqs_mags

@@ -85,3 +85,32 @@ class AudioProcessor:
             return None
         
         return chunk
+    
+    def calculate_fft(self, start_sample: int, num_samples: int) -> Optional[tuple[np.ndarray, np.ndarray]]:
+
+        if self.current_audio is None:
+            return None
+
+        sample_rate = self.current_audio.sample_rate
+        if sample_rate is None or sample_rate <= 0:
+            return None
+
+        chunk = self.get_waveform_chunk(start_sample, num_samples)
+        if chunk is None or chunk.size == 0:
+            return None
+
+        if chunk.ndim == 2 and chunk.shape[1] == 2:
+            chunk_mono = chunk.mean(axis=1)
+        else:
+            chunk_mono = chunk.flatten()
+
+        N = chunk_mono.shape[0]
+        if N == 0:
+            return None
+
+        fft_result = np.fft.rfft(chunk_mono)
+        mags = np.abs(fft_result)
+
+        freqs = np.fft.rfftfreq(n=N, d=1.0 / sample_rate)
+
+        return freqs, mags
