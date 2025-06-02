@@ -9,7 +9,6 @@ class WaveformRenderer:
         self.height = height
         self.colors = {
             'grid': (80, 80, 80),
-            'waveform': (0, 200, 255)
         }
         
     def draw_grid(self, surface: Surface):

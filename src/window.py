@@ -3,6 +3,7 @@ from waveformRenderer import WaveformRenderer
 from dragOverlay import DragOverlay
 from dropFileHandler import DropFileHandler
 from audioProcessor import AudioProcessor
+from volumeOverlay import VolumeOverlay
 import numpy as np
 
 class Window():
@@ -24,6 +25,7 @@ class Window():
         self.audio_processor = AudioProcessor()
         self.wave_renderer = WaveformRenderer(self.width, self.height)
         self.drag_overlay = DragOverlay(self.width, self.height)
+        self.volume_overlay = VolumeOverlay()
 
         self.freqs = None
         self.mags = None
@@ -44,6 +46,7 @@ class Window():
                 self.wave_renderer.draw_waveform_fft(self.screen, self.freqs, self.mags)
 
             self.drag_overlay.draw_hover_overlay(self.screen)
+            self.volume_overlay.draw_volume_bar(self.screen)
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -75,6 +78,7 @@ class Window():
                 self.running = False
 
             self.drag_overlay.handle_event(event)
+            self.volume_overlay.handle_event(event)
 
             if event.type == pygame.DROPFILE:
                 if self.is_playing:
