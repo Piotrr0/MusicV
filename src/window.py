@@ -5,7 +5,9 @@ from dropFileHandler import DropFileHandler
 from audioProcessor import AudioProcessor
 from volumeOverlay import VolumeOverlay
 from settings import Settings
+from youtubeHandler import YoutubeHandler
 import numpy as np
+import pyperclip
 
 class Window():
     def __init__(self):
@@ -27,6 +29,7 @@ class Window():
         self.wave_renderer = WaveformRenderer(self.width, self.height)
         self.drag_overlay = DragOverlay(self.width, self.height)
         self.volume_overlay = VolumeOverlay()
+        self.youtubeHandler = YoutubeHandler()
 
         self.freqs = None
         self.mags = None
@@ -71,6 +74,13 @@ class Window():
                             self.freqs, self.mags = freqs_mags
 
 
+    def play_file(self, file: str):
+            if self.audio_processor.load_audio_file(file):
+                self.audio_length_samples = self.audio_processor.get_audio_length_samples()
+                Settings.is_playing = True
+                pygame.mixer.music.play()
+
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -85,10 +95,7 @@ class Window():
                     Settings.is_playing = False
 
                 if self.file_handler.handle_file(event.file):
-                    if self.audio_processor.load_audio_file(event.file):
-                        self.audio_length_samples = self.audio_processor.get_audio_length_samples()
-                        Settings.is_playing = True
-                        pygame.mixer.music.play()
+                    self.play_file(event.file)
 
             self.handle_key_down_event(event)
 
@@ -101,3 +108,11 @@ class Window():
                 elif pygame.mixer.music.get_busy() or pygame.mixer.music.get_pos() > 0:
                     pygame.mixer.music.unpause()
                     Settings.is_playing = True
+
+            if event.key == pygame.K_v and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                print("CTRL+V detected; clipboard:!", repr(pyperclip.paste()))
+                video_url = pyperclip.paste().strip()
+                if video_url:
+                    path = self.youtubeHandler.get_audio_from_youtube(video_url)
+                    self.play_file(path)
+
