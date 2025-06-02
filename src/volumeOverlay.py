@@ -1,4 +1,5 @@
 import pygame
+from settings import Settings
 
 class VolumeOverlay():
     def __init__(self):
@@ -17,9 +18,10 @@ class VolumeOverlay():
             'bg': (50,50,50)
         }
 
-        self.is_dragging_volume = False
-
     def draw_volume_bar(self, screen):
+        if Settings.is_dragging_over:
+            return None
+
         pygame.draw.rect(screen, self.colors['bg'], (self.slider_x, self.slider_y, self.slider_width, self.slider_height))
 
         knob_x = self.slider_x + int((self.volume_percent / 100) * self.slider_width)
@@ -39,12 +41,12 @@ class VolumeOverlay():
                 self.detect_volume_dragging(event.pos)
 
         elif event.type == pygame.MOUSEMOTION:
-            if self.is_dragging_volume:
+            if Settings.is_dragging_volume:
                 self.handle_volume_dragging(event.pos)
 
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
-                self.is_dragging_volume = False
+                Settings.is_dragging_volume = False
 
     
     def detect_volume_dragging(self, pos:tuple):
@@ -55,7 +57,7 @@ class VolumeOverlay():
                         knob_center_y - self.slider_knob_radius, 
                         self.slider_knob_radius * 2, 
                         self.slider_knob_radius * 2).collidepoint(pos):
-            self.is_dragging_volume = True
+            Settings.is_dragging_volume = True
 
     def handle_volume_dragging(self, pos: tuple):
         new_knob_x = max(self.slider_x, min(self.slider_x + self.slider_width, pos[0]))

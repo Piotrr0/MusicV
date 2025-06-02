@@ -1,4 +1,5 @@
 import pygame
+from settings import Settings
 
 class DragOverlay:
     def __init__(self, parent_width: int, parent_height: int):
@@ -19,25 +20,24 @@ class DragOverlay:
         )
 
         self.overlay_border_size = 10
-        self.is_dragging_over = False
 
     def get_background_color(self, normal_bg: tuple) -> tuple:
-        if self.is_dragging_over:
+        if Settings.is_dragging_over:
             return self.colors['bg_hover']
         return normal_bg
     
     def handle_event(self, event: pygame.event.EventType):
         if event.type == pygame.DROPBEGIN:
-            self.is_dragging_over = True
+            Settings.is_dragging_over = True
 
         elif event.type == pygame.DROPCOMPLETE:
-            self.is_dragging_over = False
+            Settings.is_dragging_over = False
 
         elif event.type == pygame.DROPFILE:
-            self.is_dragging_over = False
+            Settings.is_dragging_over = False
 
     def draw_hover_overlay(self, screen: pygame.Surface):
-        if not self.is_dragging_over:
+        if not Settings.is_dragging_over:
             return
 
         overlay_surface = pygame.Surface((self.parent_width, self.parent_height), pygame.SRCALPHA)
