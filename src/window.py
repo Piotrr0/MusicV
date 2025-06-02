@@ -2,6 +2,7 @@ import pygame
 from waveformRenderer import WaveformRenderer
 from dragOverlay import DragOverlay
 from dropFileHandler import DropFileHandler
+from audioProcessor import AudioProcessor
 
 class Window():
     def __init__(self):
@@ -21,6 +22,7 @@ class Window():
         self.running = True
 
         self.file_handler = DropFileHandler()
+        self.audio_processor = AudioProcessor()
         self.wave_renderer = WaveformRenderer(self.width, self.height)
         self.drag_overlay = DragOverlay(self.width, self.height)
 
@@ -48,5 +50,15 @@ class Window():
     
             if event.type == pygame.DROPFILE:
                 if self.file_handler.handle_file(event.file):
-                    data = self.file_handler.load_audio_file(event.file)
+                    data = self.audio_processor.load_audio_file(event.file)
                     print(data)
+
+                freqs_mags = self.audio_processor.get_fft_data(
+                start_sample=0,
+                fft_size=1024,
+                channel_index=0)
+
+                if freqs_mags is not None:
+                    freqs, mags = freqs_mags
+                    print("Freqs array:", freqs)
+                    print("Mags array:", mags)
