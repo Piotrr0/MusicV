@@ -1,6 +1,7 @@
 import pygame
 from waveformRenderer import WaveformRenderer
 from dragOverlay import DragOverlay
+from dropFileHandler import DropFileHandler
 
 class Window():
     def __init__(self):
@@ -12,12 +13,14 @@ class Window():
         self.is_dragging_over = False
     
         pygame.init()
+        pygame.mixer.init()
         pygame.display.set_caption("Audio Waveform Visualizer")
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)
         self.running = True
 
+        self.file_handler = DropFileHandler()
         self.wave_renderer = WaveformRenderer(self.width, self.height)
         self.drag_overlay = DragOverlay(self.width, self.height)
 
@@ -40,5 +43,10 @@ class Window():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-                
+
             self.drag_overlay.handle_event(event)
+    
+            if event.type == pygame.DROPFILE:
+                if self.file_handler.handle_file(event.file):
+                    data = self.file_handler.load_audio_file(event.file)
+                    print(data)
