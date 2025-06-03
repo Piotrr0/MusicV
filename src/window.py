@@ -47,8 +47,7 @@ class Window():
             self.draw_gui()
 
             pygame.display.flip()
-            self.clock.tick(1000000)
-            print(self.clock.get_fps())
+            self.clock.tick(60)
 
         self.stop_fft_thread.set()
         pygame.quit()
