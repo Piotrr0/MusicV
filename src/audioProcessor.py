@@ -29,13 +29,12 @@ class AudioProcessor:
     def __init__(self):
         self.current_audio: Optional[AudioData] = None
 
-    def load_audio_file(self, file_path: str) -> Optional[AudioData]:
+    @staticmethod
+    def get_audio_data(sound: pygame.mixer.Sound) -> AudioData:
         try:
             if not pygame.mixer.get_init():
                 print("Pygame mixer not initialized.")
-                return None
 
-            sound = pygame.mixer.Sound(file_path)
             raw_data = pygame.sndarray.array(sound)
             normalized_data = raw_data.astype(np.float32) / 32767.0
 
@@ -49,20 +48,25 @@ class AudioProcessor:
 
             duration = sound.get_length()
 
-            self.current_audio = AudioData(
+            return AudioData(
                 audio_data=normalized_data,
                 sample_rate=sample_rate,
                 channels=channels,
                 duration=duration
             )
-            pygame.mixer.music.load(file_path)
-            return self.current_audio
 
         except Exception as e:
             print(f"Error loading audio: {e}")
             return None
-        
 
+    def load_audio_file(self, file_path: str) -> bool:
+            sound = pygame.mixer.Sound(file_path)
+            if sound is None:
+                return False
+            
+            self.current_audio = self.get_audio_data(sound)
+            return True
+        
     def get_waveform_chunk(self, start_sample: int, num_samples: int) -> Optional[np.ndarray]:
         if self.current_audio.audio_data is None:
             return None
@@ -121,3 +125,12 @@ class AudioProcessor:
 
     def get_sample_rate(self) -> int:
         return self.current_audio.sample_rate
+    
+    def get_current_sample_index(self) -> int:
+        current_ms = pygame.mixer.music.get_pos()
+        sample_rate = self.get_sample_rate()
+
+        if sample_rate <= 0:
+            return -1
+
+        return int(current_ms / 1000.0 * sample_rate)

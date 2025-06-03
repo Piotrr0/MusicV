@@ -26,6 +26,10 @@ class YoutubeHandler():
             info_dict = ydl.extract_info(video_url, download=True)
             title = info_dict.get("title", "audio")
 
+        return self.locate_sound_for_title(title)
+
+    def locate_sound_for_title(self, title: str) -> str:
         for file in os.listdir(self.output_dir):
             if file.endswith('.' + Settings.download_audio_ext) and title in file:
                 return os.path.join(self.output_dir, file)
+        return None

@@ -6,8 +6,8 @@ from audioProcessor import AudioProcessor
 from volumeOverlay import VolumeOverlay
 from settings import Settings
 from youtubeHandler import YoutubeHandler
-import numpy as np
 import pyperclip
+import threading
 
 class Window():
     def __init__(self):
@@ -35,84 +35,111 @@ class Window():
         self.mags = None
         self.audio_length_samples = 0
 
+        self.fft_lock = threading.Lock()
+        self.fft_worker_running = False
+
     def update(self):
         while self.running:
             self.handle_events()
             self.update_fft_data()
 
-            self.screen.fill(self.drag_overlay.get_background_color(self.colors['bg']))
-
-            self.wave_renderer.draw_grid(self.screen)
-
-            if self.freqs is not None and self.mags is not None:
-                self.wave_renderer.draw_waveform_fft(self.screen, self.freqs, self.mags)
-
-            self.drag_overlay.draw_hover_overlay(self.screen)
-            self.volume_overlay.draw_volume_bar(self.screen)
+            self.draw_gui()
 
             pygame.display.flip()
             self.clock.tick(60)
 
         pygame.quit()
-
     
-    def update_fft_data(self): # Consider refactor
+    def draw_gui(self):
+        self.screen.fill(self.drag_overlay.get_background_color(self.colors['bg']))
+            
+        self.wave_renderer.draw_grid(self.screen)
+
+        if self.freqs is not None and self.mags is not None:
+            self.wave_renderer.draw_waveform_fft(self.screen, self.freqs, self.mags)
+
+        self.drag_overlay.draw_hover_overlay(self.screen)
+        self.volume_overlay.draw_volume_bar(self.screen)
+
+    def update_fft_data(self):
        if Settings.is_playing and pygame.mixer.music.get_busy():
-                current_ms = pygame.mixer.music.get_pos()
-                sample_rate = self.audio_processor.get_sample_rate()
+            current_sample_index = self.audio_processor.get_current_sample_index()
 
-                if sample_rate > 0 and self.audio_length_samples > 0:
-                    current_sample_index = int(current_ms / 1000.0 * sample_rate)
+            if current_sample_index < self.audio_length_samples:
+                self.compute_and_store_fft(current_sample_index)
 
-                    if current_sample_index < self.audio_length_samples:
-                        freqs_mags = self.audio_processor.calculate_fft(
-                            start_sample=current_sample_index,
-                            num_samples=Settings.fft_window_size
-                        )
+    def compute_and_store_fft(self, start_sample: int):
+        freqs_mags = self.audio_processor.calculate_fft(
+            start_sample=start_sample,
+            num_samples=Settings.fft_window_size)
 
-                        if freqs_mags is not None:
-                            self.freqs, self.mags = freqs_mags
+        if freqs_mags is not None:
+            self.freqs, self.mags = freqs_mags
 
-
-    def play_file(self, file: str):
+    def load_and_play_sound(self, file: str):
             if self.audio_processor.load_audio_file(file):
+                pygame.mixer.music.load(file)
                 self.audio_length_samples = self.audio_processor.get_audio_length_samples()
-                Settings.is_playing = True
-                pygame.mixer.music.play()
+                self.music_play()
 
+    def music_play(self):
+        if not Settings.is_playing:
+            Settings.is_playing = True
+            pygame.mixer.music.play()
+    
+    def music_stop(self):
+        if Settings.is_playing:
+            Settings.is_playing = False
+            pygame.mixer.music.stop()
+
+    def music_unpause(self):
+        if not Settings.is_playing:
+            Settings.is_playing = True
+            pygame.mixer.music.unpause()
+
+    def music_pause(self):
+        if Settings.is_playing:
+            Settings.is_playing = False
+            pygame.mixer.music.pause()
 
     def handle_events(self):
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-
+            self.handle_quit_event(event)
+            self.handle_key_down_event(event)
+            self.handle_drop_event(event)
             self.drag_overlay.handle_event(event)
             self.volume_overlay.handle_event(event)
-
-            if event.type == pygame.DROPFILE:
-                if Settings.is_playing:
-                    pygame.mixer.music.stop()
-                    Settings.is_playing = False
-
-                if self.file_handler.handle_file(event.file):
-                    self.play_file(event.file)
-
-            self.handle_key_down_event(event)
 
     def handle_key_down_event(self, event: pygame.event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                if Settings.is_playing:
-                    pygame.mixer.music.pause()
-                    Settings.is_playing = False
-                elif pygame.mixer.music.get_busy() or pygame.mixer.music.get_pos() > 0:
-                    pygame.mixer.music.unpause()
-                    Settings.is_playing = True
+                self.handle_space()
 
             if event.key == pygame.K_v and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                print("CTRL+V detected; clipboard:!", repr(pyperclip.paste()))
-                video_url = pyperclip.paste().strip()
-                if video_url:
-                    path = self.youtubeHandler.get_audio_from_youtube(video_url)
-                    self.play_file(path)
+                self.handle_paste()
 
+    def handle_space(self):
+        if Settings.is_playing:
+            self.music_pause()
+        else:
+            self.music_unpause()
+
+    def handle_paste(self):
+        print("CTRL+V detected; clipboard:!", repr(pyperclip.paste()))
+        video_url = pyperclip.paste().strip()
+        if video_url:
+            path = self.youtubeHandler.get_audio_from_youtube(video_url)
+            if path:
+                self.load_and_play_sound(path)
+
+    def handle_drop_event(self, event: pygame.event):
+        if event.type == pygame.DROPFILE:
+            if Settings.is_playing:
+                self.music_stop()
+
+            if self.file_handler.handle_file(event.file):
+                self.load_and_play_sound(event.file)
+
+    def handle_quit_event(self, event: pygame.event):
+        if event.type == pygame.QUIT:
+            self.running = False

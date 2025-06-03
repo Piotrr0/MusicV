@@ -33,22 +33,26 @@ class WaveformRenderer:
             max_mag = 1e-6
 
         for i in range(num_bins):
-            magnitude = mags[i]
-            height_ratio = magnitude / max_mag
-            waveform_height = height_ratio * self.height * 0.9
-
-            if waveform_height < 1 and magnitude > 0:
-                 waveform_height = 1 # Every non-zero frequency magnitude draws at least a 1-pixel-high bar
+            waveform_height = self.calculate_waveform_height(mags[i], max_mag)
 
             x = int(i * bar_width)
             y = int(self.height - waveform_height)
-
+            
             pygame.draw.rect(
                 surface,
                 self.get_color(i,num_bins),
                 (x, y, int(bar_width), int(waveform_height))
             )
 
+    def calculate_waveform_height(self, magnitude: float, max_magnitude: float) -> float:
+        height_ratio = magnitude / max_magnitude
+        waveform_height = height_ratio * self.height * 0.9
+
+        if waveform_height < 1 and magnitude > 0:
+                 waveform_height = 1 # Every non-zero frequency magnitude draws at least a 1-pixel-high bar
+                 
+        return waveform_height
+        
     def get_color(self, current_bin: int, num_bins: int) -> tuple:
             color_progress = current_bin / (num_bins - 1) if num_bins > 1 else 0.0
 

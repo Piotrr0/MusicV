@@ -12,6 +12,5 @@ class Settings():
     download_audio_quality  = download_audio_qualities['high-quality']
 
     download_audio_bitrate = 192
-
     download_audio_ext = 'mp3'
     download_output_dir = 'audio'
