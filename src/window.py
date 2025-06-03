@@ -37,6 +37,7 @@ class Window():
 
         self.fft_lock = threading.Lock()
         self.fft_worker_running = False
+        self.stop_fft_thread = threading.Event()
 
     def update(self):
         while self.running:
@@ -46,8 +47,10 @@ class Window():
             self.draw_gui()
 
             pygame.display.flip()
-            self.clock.tick(60)
+            self.clock.tick(1000000)
+            print(self.clock.get_fps())
 
+        self.stop_fft_thread.set()
         pygame.quit()
     
     def draw_gui(self):
@@ -55,18 +58,36 @@ class Window():
             
         self.wave_renderer.draw_grid(self.screen)
 
-        if self.freqs is not None and self.mags is not None:
-            self.wave_renderer.draw_waveform_fft(self.screen, self.freqs, self.mags)
+        with self.fft_lock:
+            freqs = None if self.freqs is None else self.freqs.copy()
+            mags = None if self.mags is None else self.mags.copy()
+
+        if freqs is not None and mags is not None:
+            self.wave_renderer.draw_waveform_fft(self.screen, freqs, mags)
 
         self.drag_overlay.draw_hover_overlay(self.screen)
         self.volume_overlay.draw_volume_bar(self.screen)
 
     def update_fft_data(self):
-       if Settings.is_playing and pygame.mixer.music.get_busy():
+        if Settings.is_playing and pygame.mixer.music.get_busy():
+            if not self.fft_worker_running:
+                self.fft_worker_running = True
+                thread = threading.Thread(target=self.fft_worker, daemon=True)
+                thread.start()
+
+    def fft_worker(self):
+        try:
             current_sample_index = self.audio_processor.get_current_sample_index()
 
-            if current_sample_index < self.audio_length_samples:
-                self.compute_and_store_fft(current_sample_index)
+            if self.stop_fft_thread.is_set() or current_sample_index >= self.audio_length_samples:
+                return
+
+            self.compute_and_store_fft(current_sample_index)
+            
+        except Exception as e:
+            print(f"FFT worker error: {e}")
+        finally:
+            self.fft_worker_running = False
 
     def compute_and_store_fft(self, start_sample: int):
         freqs_mags = self.audio_processor.calculate_fft(
@@ -74,13 +95,17 @@ class Window():
             num_samples=Settings.fft_window_size)
 
         if freqs_mags is not None:
-            self.freqs, self.mags = freqs_mags
+            with self.fft_lock:
+                self.freqs, self.mags = freqs_mags
 
     def load_and_play_sound(self, file: str):
-            if self.audio_processor.load_audio_file(file):
-                pygame.mixer.music.load(file)
-                self.audio_length_samples = self.audio_processor.get_audio_length_samples()
-                self.music_play()
+        if self.audio_processor.load_audio_file(file):
+            pygame.mixer.music.load(file)
+            self.audio_length_samples = self.audio_processor.get_audio_length_samples()
+            with self.fft_lock:
+                self.freqs = None
+                self.mags = None
+            self.music_play()
 
     def music_play(self):
         if not Settings.is_playing:
