@@ -8,8 +8,8 @@ class WaveformRenderer:
         self.width = width
         self.height = height
         self.colors = {
-            'grid': (80, 80, 80),
-        }
+            'grid': (80, 80, 80), }
+        self.waveform_scale = 0.85
         
     def draw_grid(self, surface: Surface):
         grid_spacing = 50
@@ -46,7 +46,7 @@ class WaveformRenderer:
 
     def calculate_waveform_height(self, magnitude: float, max_magnitude: float) -> float:
         height_ratio = magnitude / max_magnitude
-        waveform_height = height_ratio * self.height * 0.9
+        waveform_height = height_ratio * self.height * self.waveform_scale
 
         if waveform_height < 1 and magnitude > 0:
                  waveform_height = 1 # Every non-zero frequency magnitude draws at least a 1-pixel-high bar
@@ -59,3 +59,6 @@ class WaveformRenderer:
             green = int(255 * (1.0 - color_progress))
             red = int(255 * color_progress)
             return (red, green, 0)
+    
+    def get_max_waveform_height(self) -> float:
+         return self.height * self.waveform_scale

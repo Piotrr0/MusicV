@@ -6,6 +6,7 @@ from audioProcessor import AudioProcessor
 from volumeOverlay import VolumeOverlay
 from settings import Settings
 from youtubeHandler import YoutubeHandler
+from titleOverlay import TitleOverlay
 import pyperclip
 import threading
 
@@ -28,7 +29,8 @@ class Window():
         self.audio_processor = AudioProcessor()
         self.wave_renderer = WaveformRenderer(self.width, self.height)
         self.drag_overlay = DragOverlay(self.width, self.height)
-        self.volume_overlay = VolumeOverlay()
+        self.title_overlay = TitleOverlay(self.width, self.height)
+        self.volume_overlay = VolumeOverlay(self.width)
         self.youtubeHandler = YoutubeHandler()
 
         self.freqs = None
@@ -66,6 +68,7 @@ class Window():
 
         self.drag_overlay.draw_hover_overlay(self.screen)
         self.volume_overlay.draw_volume_bar(self.screen)
+        self.title_overlay.draw_title_overlay(self.screen)
 
     def update_fft_data(self):
         if Settings.is_playing and pygame.mixer.music.get_busy():
@@ -80,6 +83,9 @@ class Window():
 
             if self.stop_fft_thread.is_set() or current_sample_index >= self.audio_length_samples:
                 return
+
+            sample_rate = self.audio_processor.get_sample_rate()
+            self.title_overlay.update_time(current_sample_index, sample_rate)
 
             self.compute_and_store_fft(current_sample_index)
             
@@ -101,6 +107,10 @@ class Window():
         if self.audio_processor.load_audio_file(file):
             pygame.mixer.music.load(file)
             self.audio_length_samples = self.audio_processor.get_audio_length_samples()
+
+            sample_rate = self.audio_processor.get_sample_rate()
+            self.title_overlay.set_audio_info(file, self.audio_length_samples, sample_rate)
+
             with self.fft_lock:
                 self.freqs = None
                 self.mags = None
