@@ -17,14 +17,17 @@ class TitleOverlay:
         }
         
         self.padding = 10
+
+        progress_bar_x = self.padding
         progress_bar_y = 70
         progress_bar_height = 15
+        progress_bar_width = self.width - (self.padding * 2)
         progress_bar_border = 2
 
         self.progress_bar = ProgressBar(
-            x=self.padding,
+            x=progress_bar_x,
             y=progress_bar_y,
-            width=self.width - (self.padding * 2),
+            width=progress_bar_width,
             height=progress_bar_height,
             border_width=progress_bar_border
         )
