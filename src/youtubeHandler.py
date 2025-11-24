@@ -20,13 +20,19 @@ class YoutubeHandler():
             "keepvideo": False,
             "quiet": True,
             "no_warnings": True,
+            "noplaylist": True,
         }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(video_url, download=True)
-            title = info_dict.get("title", "audio")
-
-        return self.locate_sound_for_title(title)
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(video_url, download=True)
+                title = info_dict.get("title", "audio")
+            
+            return self.locate_sound_for_title(title)
+            
+        except Exception as e:
+            print(f"YoutubeDL Error: {e}")
+            return None
 
     def locate_sound_for_title(self, title: str) -> str:
         for file in os.listdir(self.output_dir):
