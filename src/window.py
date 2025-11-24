@@ -159,12 +159,27 @@ class Window():
             self.music_unpause()
 
     def handle_paste(self):
-        print("CTRL+V detected; clipboard:!", repr(pyperclip.paste()))
         video_url = pyperclip.paste().strip()
+        print(f"CTRL+V detected; URL: {video_url}")
+        
         if video_url:
+            download_thread = threading.Thread(
+                target=self.download_worker, 
+                args=(video_url,), 
+                daemon=True
+            )
+            download_thread.start()
+
+    def download_worker(self, video_url):
+        try:
             path = self.youtubeHandler.get_audio_from_youtube(video_url)
             if path:
                 self.load_and_play_sound(path)
+            else:
+                print("Could not find valid audio path.")
+                
+        except Exception as e:
+            print(f"Error downloading audio: {e}")
 
     def handle_drop_event(self, event: pygame.event):
         if event.type == pygame.DROPFILE:
